@@ -217,6 +217,13 @@
             color: rgba(234, 224, 213, 0.6);
         }
 
+        /* Add this new block to make it look unclickable */
+        .disabled-btn {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none; /* This completely stops any clicks/taps */
+        }
+
         .btn-secondary:hover, .btn-secondary:active {
             background: rgba(234, 224, 213, 0.1);
             color: var(--warm-white);
@@ -312,35 +319,55 @@
     <div class="scroll-section">
         <div class="actions">
             <button onclick="respond('yes')">Sounds nice</button>
-            <button class="btn-secondary" onclick="respond('no')">Maybe another time</button>
+            <button class="btn-secondary disabled-btn" disabled>Maybe another time</button>
         </div>
     </div>
 
     <script>
-        const observerOptions = {
-            root: null,
-            rootMargin: '0px',
-            threshold: 0.4 
-        };
-
+        // ... (keep the observer code for the scroll animation the same) ...
+        const observerOptions = { root: null, rootMargin: '0px', threshold: 0.4 };
         const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                }
-            });
+            entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
         }, observerOptions);
+        document.querySelectorAll('.scroll-section').forEach(section => { observer.observe(section); });
 
-        document.querySelectorAll('.scroll-section').forEach(section => {
-            observer.observe(section);
-        });
-
+        // --- SILENT EMAIL LOGIC ---
         function respond(answer) {
-            if(answer === 'yes') {
-                alert('I am glad! See you soon 😊');
-            } else {
-                alert('No worries at all. Have a beautifully restful week 🌙');
-            }
+            // Change button text so she knows it's sending
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(btn => btn.style.opacity = '0.5');
+
+            let responseText = answer === 'yes' ? "She said YES! 🎉" : "She said maybe another time. 🌙";
+
+            // Send the data to your email
+            fetch('https://api.web3forms.com/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    access_key: "2eeed60f-d27b-47c5-8f92-11325401d27b", // <-- Put your Web3Forms key here
+                    subject: "New RSVP for Dinner!",
+                    message: responseText
+                })
+            })
+            .then(async (response) => {
+                if (response.status == 200) {
+                    // What she sees after the email is sent to you
+                    if(answer === 'yes') {
+                        alert('I am glad! See you soon 😊.');
+                    } else {
+                        alert('No worries at all. Have a beautifully restful week 🌙');
+                    }
+                } else {
+                    alert("Something went wrong, please text me!");
+                }
+            })
+            .catch(error => {
+                console.log(error);
+                alert("Something went wrong, please text me!");
+            });
         }
     </script>
 </body>
